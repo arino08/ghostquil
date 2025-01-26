@@ -3,6 +3,8 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import Navbar from "@/components/navbar"
 import { Providers } from "./providers/providers"
+import { Toaster } from "@/components/ui/toaster"
+import { cn } from "@/lib/utils"
 
 export const metadata: Metadata = {
   title: "GhostQuil",
@@ -16,12 +18,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
-        <Providers>
-          <Navbar />
-          {children}
-        </Providers>
-      </body>
+      <Providers>
+    <body className={cn('min-h-screen ', GeistSans.className)}>
+      <Navbar />
+      <main className="pt-16"> {/* Add top padding equal to navbar height */}
+        {children}
+      </main>
+      <Toaster />
+    </body>
+    </Providers>
     </html>
   )
 }
