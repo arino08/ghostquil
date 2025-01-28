@@ -1,24 +1,24 @@
 'use client';
 
-import { MessageCard } from '@/components/messageCard';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Message } from '@/model/User';
 import { ApiResponse } from '@/types/ApiResponse';
 import { zodResolver } from '@hookform/resolvers/zod';
 import axios, { AxiosError } from 'axios';
-import { Loader2, RefreshCcw } from 'lucide-react';
-import { User } from 'next-auth';
+import { Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { acceptMessageSchema } from '@/schemas/acceptMessageSchema';
-import { UserIcon, MessagesSquare, Settings } from 'lucide-react'
-import { Suspense } from 'react'
 import DashboardContent from '@/components/dashboardContent'
-import Loading from '@/components/loading'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu"
+import { CheckCircle, XCircle, ChevronDown } from "lucide-react"
 
 
 
@@ -30,38 +30,35 @@ function UserDashboard() {
   const [isToggleLoading, setIsToggleLoading] = useState(false)
 
   const { toast } = useToast();
-
-  
-
   const { data: session } = useSession();
 
   const form = useForm({
     resolver: zodResolver(acceptMessageSchema),
   });
 
-  const { register, watch, setValue } = form;
-  const acceptMessages = watch('acceptMessages');
+  const { setValue } = form;
 
-  const fetchAcceptMessages = useCallback(async () => {
+
+  
+
+const fetchAcceptMessages = useCallback(async () => {
     setIsSwitchLoading(true);
     try {
-      const response = await axios.get<ApiResponse>('/api/accept-messages');
-      setValue('acceptMessages', response.data.isAcceptingMessage);
+      const response = await axios.get('/api/accept-messages');
+      const isAccepting = response.data.isAcceptingMessage ?? false;
+      setIsAcceptingMessages(isAccepting);
+      setValue('acceptMessages', isAccepting);
     } catch (error) {
-      const axiosError = error as AxiosError<ApiResponse>;
+      console.error('Error fetching message preferences:', error);
       toast({
         title: 'Error',
-        description:
-          axiosError.response?.data.message ??
-          'Failed to fetch message settings',
+        description: 'Failed to fetch message preferences',
         variant: 'destructive',
       });
     } finally {
       setIsSwitchLoading(false);
     }
-  }, [setValue, toast]);
-
-  
+  }, [toast]);
 
   const fetchMessages = useCallback(
     async (refresh: boolean = false) => {
@@ -91,93 +88,103 @@ function UserDashboard() {
     },
     [setIsLoading, setMessages, toast]
   );
+
+
+  useEffect(() => {
+    if (!session?.user) return;
+    fetchAcceptMessages();
+    fetchMessages();
+  }, [session?.user, fetchAcceptMessages, fetchMessages]);
+
+  
+
+
   const handleToggleMessages = async (checked: boolean) => {
-    setIsToggleLoading(true)
+    setIsToggleLoading(true);
     try {
       const response = await axios.post('/api/accept-messages', {
-        acceptMessages: checked
-      })
-      
-      if (response.data.success) {
-        setIsAcceptingMessages(response.data.isAcceptingMessage)
-        toast({
-          title: 'Success',
-          description: response.data.message,
-        })
-      }
+        acceptMessages: checked,
+      });
+      setIsAcceptingMessages(response.data.isAcceptingMessage ?? checked);
+      toast({
+        title: 'Success',
+        description: 'Preference updated',
+      });
     } catch (error) {
+      console.error('Error updating message preferences:', error);
       toast({
         title: 'Error',
         description: 'Failed to update message preferences',
         variant: 'destructive',
-      })
+      });
     } finally {
-      setIsToggleLoading(false)
+      setIsToggleLoading(false);
     }
-  }
+  };
 
-  useEffect(() => {
-    if (!session || !session.user) return;
 
-    fetchMessages();
-
-    fetchAcceptMessages();
-  }, [session, setValue, toast, fetchAcceptMessages, fetchMessages]);
-
-  useEffect(() => {
-    const fetchMessagePreferences = async () => {
-      try {
-        const response = await axios.get('/api/accept-messages')
-        if (response.data.success) {
-          setIsAcceptingMessages(response.data.acceptMessages)
-        }
-      } catch (error) {
-        console.error('Error fetching message preferences:', error)
-      }
-    }
-    
-    fetchMessagePreferences()
-  }, [])
 
 
   if (!session || !session.user) {
     return <div></div>;
   }
 
-  const { username } = session.user as User;
-
-  const baseUrl = `${window.location.protocol}//${window.location.host}`;
-  const profileUrl = `${baseUrl}/u/${username}`;
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(profileUrl);
-    toast({
-      title: 'URL Copied!',
-      description: 'Profile URL has been copied to clipboard.',
-    });
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
-      <Suspense fallback={<Loading />}>
-      <div className="mb-6 flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-lg backdrop-blur-sm">
-  <div className="space-y-1">
-    <h3 className="text-sm font-medium text-zinc-200">Accept Messages</h3>
-    <p className="text-xs text-zinc-400">
-      {isAcceptingMessages ? 'Currently accepting messages' : 'Not accepting messages'}
-    </p>
-  </div>
-  <Switch
-    checked={isAcceptingMessages}
-    onCheckedChange={handleToggleMessages}
-    disabled={isToggleLoading}
-    className="data-[state=checked]:bg-violet-500"
-  />
-</div>
+    
+      <div className="p-6 bg-zinc-950 border border-zinc-800/40 shadow-lg">
+        <div className="flex items-center rounded-xl justify-between">
+          <div className="space-y-1.5 pb-4">
+            <h3 className="text-sm font-medium text-zinc-100 tracking-tight">
+              Message Status
+            </h3>
+            <p className="text-xs text-zinc-400">
+              Control who can send you messages
+            </p>
+          </div>
+          
+          <DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button 
+      variant="outline" 
+      className="relative px-4 py-2 bg-zinc-900/50 hover:bg-zinc-800/50
+        border border-zinc-800/50 hover:border-zinc-700/50
+        text-zinc-100 transition-all duration-200 backdrop-blur-sm"
+      disabled={isToggleLoading}
+    >
+      <span className="text-sm">Change Message Status</span>
+      <ChevronDown className="h-4 w-4 ml-2 opacity-70" />
+    </Button>
+  </DropdownMenuTrigger>
+
+  <DropdownMenuContent
+    className="w-56 bg-zinc-900/95 backdrop-blur-lg border border-zinc-800/50 
+      shadow-xl rounded-lg overflow-hidden"
+  >
+    <DropdownMenuItem
+      onClick={() => handleToggleMessages(true)}
+      className="group flex items-center px-3 py-2 text-sm
+        text-zinc-300 hover:text-emerald-400 
+        hover:bg-zinc-800/50 transition-all duration-200"
+    >
+      <CheckCircle className="h-4 w-4 mr-2 group-hover:text-emerald-400" />
+      Accept Messages
+    </DropdownMenuItem>
+    <DropdownMenuItem
+      onClick={() => handleToggleMessages(false)}
+      className="group flex items-center px-3 py-2 text-sm
+        text-zinc-300 hover:text-rose-400 
+        hover:bg-zinc-800/50 transition-all duration-200"
+    >
+      <XCircle className="h-4 w-4 mr-2 group-hover:text-rose-400" />
+      Disable Messages
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
+        </div>
         <DashboardContent />
-      </Suspense>
-    </div>
-  )
+      </div>
+    
+  );
 }
 
 

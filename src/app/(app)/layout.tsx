@@ -1,32 +1,49 @@
-import { Metadata } from "next"
-import { GeistSans } from 'geist/font/sans'
-import { GeistMono } from 'geist/font/mono'
-import Navbar from "@/components/navbar"
-import { Providers } from "./providers/providers"
-import { Toaster } from "@/components/ui/toaster"
-import { cn } from "@/lib/utils"
+import React from 'react';
+import { ToastContainer } from 'react-toastify'; // Ensure react-toastify is installed
+import 'react-toastify/dist/ReactToastify.css'; // Import react-toastify styles
 
-export const metadata: Metadata = {
-  title: "GhostQuil",
-  description: "Anonymous remarks platform",
+import Navbar from '@/components/navbar'; // Client component
+import {Providers} from '@/app/(app)/providers'; // Ensure you have a Providers component handling context
+import { Geist, Geist_Mono } from 'next/font/google'; // Correct font import
+import { cn } from '@/lib/utils'; // Utility function for conditional classNames
+
+import '@/app/globals.css'; // Import global styles if any
+
+// Define metadata for Next.js App Router
+export const metadata = {
+  title: 'GhostQuil',
+  description: 'Anonymous remarks platform',
+};
+
+interface RootLayoutProps {
+  children: React.ReactNode;
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+// Initialize fonts correctly
+const geistSans = Geist({
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
+});
+
+const geistMono = Geist_Mono({
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
+});
+
+const RootLayout: React.FC<RootLayoutProps> = ({ children }) => {
   return (
-    <html lang="en">
-      <Providers>
-    <body className={cn('min-h-screen ', GeistSans.className)}>
-      <Navbar />
-      <main className="pt-16"> {/* Add top padding equal to navbar height */}
-        {children}
-      </main>
-      <Toaster />
-    </body>
-    </Providers>
+    <html lang="en" className={cn(geistSans.variable, geistMono.variable)}>
+      <body className="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col">
+        <Providers>
+          <Navbar />
+          <main className="flex-1 pt-16"> {/* Adjust padding based on Navbar height */}
+            {children}
+          </main>
+          <ToastContainer position="top-right" autoClose={3000} />
+        </Providers>
+      </body>
     </html>
-  )
-}
+  );
+};
+
+export default RootLayout;

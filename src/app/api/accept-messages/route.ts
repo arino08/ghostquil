@@ -84,7 +84,6 @@ export async function GET (_request: Request){
         }
         return Response.json({
             success: true,
-            message: "Messages accepted",
             acceptMessages: user.isAcceptingMessage
         })
 
